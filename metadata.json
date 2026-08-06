@@ -1,6 +1,6 @@
 {
-  "name": "Sununsi Dev Video Platform",
-  "description": "Production-ready, cloud-based video-sharing, live streaming, short video, CPA task, and digital creator platform with Face ID verification and multi-payment gateways.",
-  "requestFramePermissions": ["camera", "microphone"],
+  "name": "23 Support Engineer Regiment Jos Personnel Management System",
+  "description": "Secure personnel records management system for 23 Support Engineer Regiment Jos (Nigerian Army Engineers) featuring RBAC authentication, HOD department management, personnel database, reports export, and backend database dashboard.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

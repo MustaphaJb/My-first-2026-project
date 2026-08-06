@@ -1,667 +1,286 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Tv, Smartphone, Monitor, ShieldCheck, Mail, Phone, Lock, 
-  CheckCircle2, ArrowRight, Sparkles, RefreshCw, KeyRound, User, 
-  DollarSign, ShoppingBag, Radio, Play, Gift, Layers, Check, ChevronRight
-} from 'lucide-react';
-import { UserProfile, UserRole } from '../types';
+import React, { useState } from 'react';
+import { RegimentLogo } from './RegimentLogo';
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, AlertCircle, Info, KeyRound } from 'lucide-react';
 
 interface LandingPageProps {
-  onLoginSuccess: (userProfile: UserProfile) => void;
-  onBrowseAsGuest: () => void;
-  selectedPlatform: 'desktop' | 'android';
-  onPlatformChange: (platform: 'desktop' | 'android') => void;
+  onLoginSuccess: (email: string, pass: string) => Promise<boolean>;
+  darkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onLoginSuccess,
-  onBrowseAsGuest,
-  selectedPlatform,
-  onPlatformChange
+  darkMode,
+  onToggleDarkMode,
 }) => {
-  const [authMode, setAuthMode] = useState<'signup' | 'login' | 'email_verify' | 'otp_verify'>('signup');
-  
-  // Registration Form State
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('+234 812 345 6789');
-  const [countryCode, setCountryCode] = useState('+234');
   const [password, setPassword] = useState('');
-  const [preferredRole, setPreferredRole] = useState<UserRole>('Creator');
-  const [preferredDevice, setPreferredDevice] = useState<'android' | 'desktop'>(selectedPlatform);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
 
-  // Email Verification State
-  const [emailCode, setEmailCode] = useState('849201');
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [emailTimer, setEmailTimer] = useState(45);
-
-  // OTP Verification State
-  const [otpCode, setOtpCode] = useState('654321');
-  const [isOtpVerified, setIsOtpVerified] = useState(false);
-  const [otpTimer, setOtpTimer] = useState(30);
-
-  // Login Form State
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-
-  // UI Feedback
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Countdown timers for email/otp resend
-  useEffect(() => {
-    let interval: any;
-    if (authMode === 'email_verify' && emailTimer > 0) {
-      interval = setInterval(() => setEmailTimer(t => t - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [authMode, emailTimer]);
-
-  useEffect(() => {
-    let interval: any;
-    if (authMode === 'otp_verify' && otpTimer > 0) {
-      interval = setInterval(() => setOtpTimer(t => t - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [authMode, otpTimer]);
-
-  // Submit Sign Up Form -> Move to Email Confirmation
-  const handleSignUpSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !name) {
-      setStatusMessage('Please fill in your name and email address.');
+    if (!email || !password) {
+      setError('Please enter both email address and password.');
       return;
     }
-    setIsSubmitting(true);
-    setStatusMessage('Generating email verification token...');
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setStatusMessage(null);
-      setAuthMode('email_verify');
-    }, 800);
+
+    setLoading(true);
+    setError(null);
+
+    const ok = await onLoginSuccess(email, password);
+    setLoading(false);
+    if (!ok) {
+      setError('Authentication failed. Please check your credentials or contact the Administrator.');
+    }
   };
 
-  // Submit Email Verification -> Move to OTP Confirmation
-  const handleVerifyEmail = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (emailCode.length < 6) {
-      setStatusMessage('Please enter the 6-digit email confirmation code.');
-      return;
-    }
-    setIsSubmitting(true);
-    setStatusMessage('Verifying email security code...');
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsEmailVerified(true);
-      setStatusMessage(null);
-      setAuthMode('otp_verify');
-    }, 900);
+  const handleQuickDemoFill = (demoEmail: string, demoPass: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setError(null);
   };
 
-  // Submit OTP Verification -> Finalize Account Registration
-  const handleVerifyOTP = (e: React.FormEvent) => {
+  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.length < 6) {
-      setStatusMessage('Please enter the 6-digit SMS OTP code.');
-      return;
-    }
-    setIsSubmitting(true);
-    setStatusMessage('Confirming OTP & provisioning developer account...');
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsOtpVerified(true);
-      
-      const newProfile: UserProfile = {
-        id: `user_${Date.now()}`,
-        name: name || 'New Sununsi Creator',
-        email: email || 'user@sununsi.dev',
-        phone: `${countryCode} ${phone}`,
-        handle: `@${(name || 'creator').toLowerCase().replace(/\s+/g, '')}`,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-        bio: `Software developer & creator on Sununsi Dev (${preferredDevice.toUpperCase()} platform).`,
-        subscribersCount: 1,
-        verified: true,
-        verificationBadgeType: 'Official Dev',
-        role: preferredRole,
-        twoFactorEnabled: true,
-        faceIdRegistered: true,
-        emailVerified: true,
-        phoneVerified: true,
-        otpVerified: true,
-        isLoggedIn: true,
-        preferredDevice: preferredDevice,
-        walletBalance: 25.00, // Welcome bonus credit
-        referralCode: `SUNUNSI-${Math.floor(1000 + Math.random() * 9000)}`,
-        referredCount: 0,
-        referralEarnings: 0,
-        joinedDate: 'Just Now'
-      };
-
-      onLoginSuccess(newProfile);
-    }, 1200);
-  };
-
-  // Login Submit
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginEmail) {
-      setStatusMessage('Please enter your registered email address.');
-      return;
-    }
-    setIsSubmitting(true);
-    setStatusMessage('Authenticating credentials & checking 2FA OTP...');
-
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setAuthMode('otp_verify');
-    }, 900);
+    setForgotSuccess(true);
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#F5F5F5] font-sans antialiased flex flex-col">
-      {/* Top Banner Navigation */}
-      <header className="sticky top-0 z-40 w-full bg-[#080808]/90 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between shadow-2xl">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-orange-600 rounded-xl flex items-center justify-center font-serif text-xl font-bold text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]">
-            S
-          </div>
-          <div>
-            <span className="font-serif italic text-xl tracking-tight text-white">
-              Sununsi <span className="text-orange-500">Dev</span>
-            </span>
-            <span className="hidden sm:inline-block ml-2 text-[10px] font-mono uppercase bg-white/5 border border-white/10 px-2 py-0.5 rounded text-white/50">
-              Desktop & Android Engine
-            </span>
-          </div>
-        </div>
+    <div className={`min-h-screen flex flex-col justify-between ${darkMode ? 'bg-emerald-950 text-white' : 'bg-slate-900 text-white'} font-sans relative overflow-hidden`}>
+      
+      {/* Background Camo / Grid Pattern Overlay */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px]" />
 
-        {/* Platform View Switcher & Guest CTA */}
+      {/* Top Header Bar */}
+      <header className="px-6 py-4 flex items-center justify-between border-b border-amber-500/20 bg-emerald-950/80 backdrop-blur-sm relative z-10">
+        <RegimentLogo size="sm" showText={true} />
         <div className="flex items-center gap-3">
-          {/* Device Toggle */}
-          <div className="flex bg-black p-1 rounded-full border border-white/10 text-xs">
-            <button
-              onClick={() => onPlatformChange('desktop')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all ${
-                selectedPlatform === 'desktop'
-                  ? 'bg-orange-600 text-white shadow-[0_0_10px_rgba(234,88,12,0.3)]'
-                  : 'text-white/50 hover:text-white'
-              }`}
-            >
-              <Monitor className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Desktop</span>
-            </button>
-            <button
-              onClick={() => onPlatformChange('android')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-medium transition-all ${
-                selectedPlatform === 'android'
-                  ? 'bg-orange-600 text-white shadow-[0_0_10px_rgba(234,88,12,0.3)]'
-                  : 'text-white/50 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Android</span>
-            </button>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-900/60 border border-amber-500/30 text-amber-300 text-xs font-mono">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            <span>Restricted Military Domain</span>
           </div>
-
-          <button
-            onClick={onBrowseAsGuest}
-            className="px-4 py-1.5 rounded-full text-xs font-semibold bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all"
-          >
-            Explore as Guest
-          </button>
         </div>
       </header>
 
-      {/* Hero Section & Auth Center */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        {/* Left Column: Platform Showcase */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-600/10 border border-orange-600/30 text-orange-400 text-xs font-bold uppercase tracking-widest">
-            <Sparkles className="w-3.5 h-3.5" /> Multi-Platform Developer Network
-          </div>
+      {/* Main Login Form Container */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative z-10">
+        <div className="w-full max-w-md">
+          
+          {/* Card Frame */}
+          <div className="bg-emerald-900/40 border-2 border-amber-500/40 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative overflow-hidden">
+            
+            {/* Top Gold Trim Accent */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-600 via-amber-400 to-amber-600" />
 
-          <h1 className="text-3xl sm:text-5xl font-serif text-white leading-tight">
-            Stream 4K Developer Videos, Earn CPA Rewards & Monetize Code on <span className="text-orange-500 italic">Desktop & Android</span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-white/60 leading-relaxed max-w-2xl">
-            Sununsi Dev is the high-performance media & developer monetization platform built for modern creators. Features 4K video playback, live streams with SuperChat, CPA task earnings, digital store marketplaces, and biometric Face ID & 2FA OTP security.
-          </p>
-
-          {/* Device Compatibility Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 pt-2">
-            <div className="p-4 bg-[#080808] border border-white/10 rounded-2xl flex items-center gap-3">
-              <div className="p-2.5 bg-orange-600/20 text-orange-400 rounded-xl border border-orange-600/30">
-                <Smartphone className="w-5 h-5" />
+            {/* Crest & Title */}
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-3">
+                <RegimentLogo size="lg" showText={false} />
               </div>
-              <div>
-                <h4 className="font-bold text-xs text-white">Android Mobile App & PWA</h4>
-                <p className="text-[11px] text-white/40">Touch optimized, offline sync & APK bundle ready.</p>
-              </div>
+              
+              <h1 className="text-xl sm:text-2xl font-black tracking-wide text-white uppercase font-sans">
+                23 Support Engineer Regiment Jos
+              </h1>
+              <p className="text-xs sm:text-sm font-semibold text-amber-400 uppercase tracking-widest mt-1">
+                Personnel Records Management System
+              </p>
             </div>
 
-            <div className="p-4 bg-[#080808] border border-white/10 rounded-2xl flex items-center gap-3">
-              <div className="p-2.5 bg-orange-600/20 text-orange-400 rounded-xl border border-orange-600/30">
-                <Monitor className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs text-white">Desktop Workstation</h4>
-                <p className="text-[11px] text-white/40">Multi-monitor layouts, 4K streaming & creator studio.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Core Highlights */}
-          <div className="pt-4 border-t border-white/10 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white">4K 60FPS</p>
-              <p className="text-[11px] text-white/40 uppercase tracking-widest">Adaptive Video</p>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-orange-400">$850.00+</p>
-              <p className="text-[11px] text-white/40 uppercase tracking-widest">Daily CPA Rewards</p>
-            </div>
-            <div>
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white">Instant OTP</p>
-              <p className="text-[11px] text-white/40 uppercase tracking-widest">2FA Security</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: User Auth Box (Sign Up, Log In, Email Confirmation, OTP Confirmation) */}
-        <div className="lg:col-span-5">
-          <div className="bg-[#080808] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-600 via-amber-500 to-orange-600" />
-
-            {/* Auth Stage Stepper / Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
-              <div>
-                <h3 className="font-serif text-xl text-white">
-                  {authMode === 'signup' && 'Create Developer Account'}
-                  {authMode === 'login' && 'Sign In to Sununsi'}
-                  {authMode === 'email_verify' && 'Email Address Confirmation'}
-                  {authMode === 'otp_verify' && 'Mobile 2FA OTP Confirmation'}
-                </h3>
-                <p className="text-xs text-white/50">
-                  {authMode === 'signup' && 'Sign up to access 4K streams & CPA earnings.'}
-                  {authMode === 'login' && 'Welcome back! Access your wallet & studio.'}
-                  {authMode === 'email_verify' && 'Step 2 of 3: Verify your email address.'}
-                  {authMode === 'otp_verify' && 'Step 3 of 3: Confirm SMS OTP security code.'}
-                </p>
-              </div>
-
-              <div className="p-2.5 rounded-2xl bg-orange-600/20 text-orange-400 border border-orange-600/30 shrink-0">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-            </div>
-
-            {/* Mode Selector Tabs (Sign Up vs Log In) */}
-            {(authMode === 'signup' || authMode === 'login') && (
-              <div className="flex bg-black p-1 rounded-2xl border border-white/10 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('signup')}
-                  className={`flex-1 py-2.5 rounded-xl font-bold transition-all ${
-                    authMode === 'signup'
-                      ? 'bg-orange-600 text-white shadow-[0_0_12px_rgba(234,88,12,0.3)]'
-                      : 'text-white/40 hover:text-white'
-                  }`}
-                >
-                  Sign Up (New User)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuthMode('login')}
-                  className={`flex-1 py-2.5 rounded-xl font-bold transition-all ${
-                    authMode === 'login'
-                      ? 'bg-orange-600 text-white shadow-[0_0_12px_rgba(234,88,12,0.3)]'
-                      : 'text-white/40 hover:text-white'
-                  }`}
-                >
-                  Log In
-                </button>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-950/80 border border-red-500/60 text-red-200 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Status Messages */}
-            {statusMessage && (
-              <div className="p-3 bg-orange-600/20 border border-orange-600/40 text-orange-300 rounded-xl text-xs flex items-center gap-2 animate-in fade-in">
-                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-                <span>{statusMessage}</span>
-              </div>
-            )}
-
-            {/* STEP 1: SIGN UP FORM */}
-            {authMode === 'signup' && (
-              <form onSubmit={handleSignUpSubmit} className="space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1">Full Name</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-3 text-white/30" />
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Mustapha Jibril"
-                      className="w-full pl-9 pr-3 py-2.5 bg-black border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
-                    />
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Email Input */}
+              <div>
+                <label className="block text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-400">
+                    <Mail className="w-4 h-4" />
                   </div>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-3 text-white/30" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. developer@sununsi.dev"
-                      className="w-full pl-9 pr-3 py-2.5 bg-black border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1">Mobile Phone Number (SMS OTP)</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                      className="bg-black border border-white/10 rounded-xl px-2.5 py-2.5 text-white font-mono focus:outline-none"
-                    >
-                      <option value="+234">🇳🇬 +234</option>
-                      <option value="+1">🇺🇸 +1</option>
-                      <option value="+44">🇬🇧 +44</option>
-                      <option value="+33">🇫🇷 +33</option>
-                      <option value="+254">🇰🇪 +254</option>
-                      <option value="+27">🇿🇦 +27</option>
-                    </select>
-                    <div className="relative flex-1">
-                      <Phone className="w-4 h-4 absolute left-3 top-3 text-white/30" />
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="812 345 6789"
-                        className="w-full pl-9 pr-3 py-2.5 bg-black border border-white/10 rounded-xl text-white font-mono placeholder-white/30 focus:outline-none focus:border-orange-500/50"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-semibold text-white/80 block mb-1">Primary Platform</label>
-                    <select
-                      value={preferredDevice}
-                      onChange={(e) => setPreferredDevice(e.target.value as any)}
-                      className="w-full p-2.5 bg-black border border-white/10 rounded-xl text-white focus:outline-none"
-                    >
-                      <option value="desktop">💻 Desktop Workstation</option>
-                      <option value="android">📱 Android Phone / Tablet</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="font-semibold text-white/80 block mb-1">Developer Role</label>
-                    <select
-                      value={preferredRole}
-                      onChange={(e) => setPreferredRole(e.target.value as any)}
-                      className="w-full p-2.5 bg-black border border-white/10 rounded-xl text-white focus:outline-none"
-                    >
-                      <option value="Creator">Creator / Streamer</option>
-                      <option value="Viewer">Viewer / Learner</option>
-                      <option value="Moderator">Moderator</option>
-                      <option value="Admin">Platform Admin</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1">Security Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3 text-white/30" />
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full pl-9 pr-3 py-2.5 bg-black border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-[0_0_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
-                >
-                  <span>Proceed to Email Confirmation</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
-            )}
-
-            {/* STEP 2: EMAIL CONFIRMATION */}
-            {authMode === 'email_verify' && (
-              <form onSubmit={handleVerifyEmail} className="space-y-4 text-xs animate-in fade-in">
-                <div className="p-4 bg-black/60 border border-white/10 rounded-2xl space-y-2 text-center">
-                  <div className="w-12 h-12 bg-orange-600/20 text-orange-400 rounded-full flex items-center justify-center mx-auto border border-orange-600/30">
-                    <Mail className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-bold text-sm text-white">Check Your Email Inbox</h4>
-                  <p className="text-white/60">
-                    We sent a 6-digit confirmation code to <strong className="text-orange-400">{email || 'your email'}</strong>.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1 text-center">
-                    Enter 6-Digit Email Confirmation Code
-                  </label>
                   <input
-                    type="text"
-                    maxLength={6}
+                    id="input-login-email"
+                    type="email"
                     required
-                    value={emailCode}
-                    onChange={(e) => setEmailCode(e.target.value)}
-                    placeholder="849201"
-                    className="w-full p-3 text-center text-xl font-mono font-bold tracking-widest bg-black border border-orange-500/50 rounded-xl text-orange-400 focus:outline-none"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="officer@army.mil.ng"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-emerald-950/80 border border-emerald-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 text-white placeholder-emerald-600/70 text-sm font-medium transition-all"
                   />
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between text-[11px] text-white/40">
-                  <span>Code auto-simulated for convenience</span>
-                  <button
-                    type="button"
-                    disabled={emailTimer > 0}
-                    onClick={() => setEmailTimer(45)}
-                    className="text-orange-400 hover:underline disabled:opacity-40"
-                  >
-                    {emailTimer > 0 ? `Resend Code in ${emailTimer}s` : 'Resend Email Code'}
-                  </button>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode('signup')}
-                    className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 font-medium"
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-[0_0_15px_rgba(234,88,12,0.3)] flex items-center justify-center gap-2"
-                  >
-                    <span>Verify Email Code</span>
-                    <CheckCircle2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* STEP 3: OTP CONFIRMATION */}
-            {authMode === 'otp_verify' && (
-              <form onSubmit={handleVerifyOTP} className="space-y-4 text-xs animate-in fade-in">
-                <div className="p-4 bg-black/60 border border-white/10 rounded-2xl space-y-2 text-center">
-                  <div className="w-12 h-12 bg-orange-600/20 text-orange-400 rounded-full flex items-center justify-center mx-auto border border-orange-600/30">
-                    <KeyRound className="w-6 h-6" />
+              {/* Password Input */}
+              <div>
+                <label className="block text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-400">
+                    <Lock className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-sm text-white">Mobile SMS OTP Security Check</h4>
-                  <p className="text-white/60">
-                    Enter the 6-digit SMS OTP security code sent to <strong className="text-orange-400">{countryCode} {phone}</strong>.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1 text-center">
-                    6-Digit Mobile OTP Security Code
-                  </label>
                   <input
-                    type="text"
-                    maxLength={6}
+                    id="input-login-password"
+                    type={showPassword ? 'text' : 'password'}
                     required
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="654321"
-                    className="w-full p-3 text-center text-xl font-mono font-bold tracking-widest bg-black border border-orange-500/50 rounded-xl text-orange-400 focus:outline-none"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-9 pr-10 py-2.5 rounded-lg bg-emerald-950/80 border border-emerald-700/80 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 text-white placeholder-emerald-600/70 text-sm font-medium transition-all"
                   />
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] text-white/40">
-                  <span>2FA OTP Verification Active</span>
                   <button
                     type="button"
-                    disabled={otpTimer > 0}
-                    onClick={() => setOtpTimer(30)}
-                    className="text-orange-400 hover:underline disabled:opacity-40"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-emerald-400 hover:text-amber-300"
                   >
-                    {otpTimer > 0 ? `Resend OTP in ${otpTimer}s` : 'Resend SMS OTP'}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+              </div>
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2 cursor-pointer text-emerald-300 hover:text-white">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-emerald-700 bg-emerald-950 text-amber-500 focus:ring-amber-400"
+                  />
+                  <span>Remember Me</span>
+                </label>
 
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-[0_0_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPasswordModal(true);
+                    setForgotSuccess(false);
+                    setForgotEmail('');
+                  }}
+                  className="text-amber-400 hover:text-amber-300 underline font-medium"
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>Confirm OTP & Launch Platform</span>
+                  Forgot Password?
                 </button>
-              </form>
-            )}
+              </div>
 
-            {/* LOG IN FORM */}
-            {authMode === 'login' && (
-              <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1">Email or Username</label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-3 text-white/30" />
-                    <input
-                      type="email"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="creator@sununsi.dev"
-                      className="w-full pl-9 pr-3 py-2.5 bg-black border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
-                    />
-                  </div>
-                </div>
+              {/* Submit Button */}
+              <button
+                id="btn-login-submit"
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-emerald-950 font-extrabold uppercase tracking-wider text-sm shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-emerald-950 border-t-transparent rounded-full animate-spin" />
+                    <span>Authenticating...</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4" />
+                    <span>Secure Sign In</span>
+                  </>
+                )}
+              </button>
 
-                <div>
-                  <label className="font-semibold text-white/80 block mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3 text-white/30" />
-                    <input
-                      type="password"
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full pl-9 pr-3 py-2.5 bg-black border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50"
-                    />
-                  </div>
-                </div>
+            </form>
 
+            {/* Quick Demo Selector for Evaluator */}
+            <div className="mt-6 pt-4 border-t border-emerald-800/80 text-center">
+              <span className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider block mb-2">
+                Quick Demo Role Selector:
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl shadow-[0_0_20px_rgba(234,88,12,0.4)] flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+                  type="button"
+                  onClick={() => handleQuickDemoFill('admin@army.mil.ng', 'admin123')}
+                  className="px-2.5 py-1.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-colors font-medium text-[11px]"
                 >
-                  <span>Sign In & Verify 2FA OTP</span>
-                  <ArrowRight className="w-4 h-4" />
+                  Administrator
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoFill('hod.combat@army.mil.ng', 'hod123')}
+                  className="px-2.5 py-1.5 rounded bg-emerald-800/50 border border-emerald-600 text-emerald-200 hover:bg-emerald-800 transition-colors font-medium text-[11px]"
+                >
+                  HOD Combat Engr
+                </button>
+              </div>
+            </div>
 
-                <div className="pt-2 text-center">
-                  <p className="text-white/40 text-[11px]">
-                    Demo credentials pre-filled. Click Sign In to verify OTP & log in instantly.
-                  </p>
-                </div>
-              </form>
-            )}
+            {/* No Registration Note */}
+            <div className="mt-4 text-center">
+              <p className="text-[11px] text-emerald-400/70 italic flex items-center justify-center gap-1">
+                <Info className="w-3 h-3 text-amber-400" />
+                Self-registration disabled. HOD accounts created by Admin.
+              </p>
+            </div>
+
           </div>
         </div>
       </main>
 
-      {/* Feature Modules Matrix */}
-      <section className="bg-[#080808] border-t border-white/10 py-12 px-6">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="text-center space-y-2 max-w-2xl mx-auto">
-            <h3 className="font-serif text-2xl text-white">Full-Featured Platform Capabilities</h3>
-            <p className="text-xs text-white/50">Designed specifically for developer creators, streamers, and CPA affiliate marketers.</p>
-          </div>
+      {/* Forgot Password Modal */}
+      {showForgotPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-emerald-900 border-2 border-amber-500/40 rounded-xl p-6 w-full max-w-sm text-white shadow-2xl">
+            <h3 className="text-lg font-bold text-amber-400 uppercase mb-2">Reset Password</h3>
+            <p className="text-xs text-emerald-200 mb-4">
+              Enter your official military email address. Instructions will be routed to your department administrator.
+            </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs">
-            <div className="p-5 bg-black/60 border border-white/10 rounded-2xl space-y-2">
-              <div className="w-10 h-10 bg-orange-600/20 text-orange-400 rounded-xl flex items-center justify-center font-bold">
-                <Play className="w-5 h-5" />
+            {forgotSuccess ? (
+              <div className="p-3 bg-emerald-950 border border-emerald-600 rounded text-xs text-emerald-300 mb-4">
+                Password reset request dispatched to HQ System Admin. Check your military inbox.
               </div>
-              <h4 className="font-bold text-white text-sm">4K Video & Live Stream</h4>
-              <p className="text-white/50">Adaptive resolution switching, live chat with SuperChat tipping, and captions.</p>
-            </div>
+            ) : (
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-3">
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="officer@army.mil.ng"
+                  className="w-full px-3 py-2 rounded bg-emerald-950 border border-emerald-700 text-sm text-white"
+                />
+                <button
+                  type="submit"
+                  className="w-full py-2 bg-amber-500 text-emerald-950 font-bold rounded text-xs uppercase"
+                >
+                  Submit Request
+                </button>
+              </form>
+            )}
 
-            <div className="p-5 bg-black/60 border border-white/10 rounded-2xl space-y-2">
-              <div className="w-10 h-10 bg-orange-600/20 text-orange-400 rounded-xl flex items-center justify-center font-bold">
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <h4 className="font-bold text-white text-sm">CPA Offerwall Engine</h4>
-              <p className="text-white/50">Complete daily cloud app tests, surveys & watch sponsored developer keynotes for wallet cash.</p>
-            </div>
-
-            <div className="p-5 bg-black/60 border border-white/10 rounded-2xl space-y-2">
-              <div className="w-10 h-10 bg-orange-600/20 text-orange-400 rounded-xl flex items-center justify-center font-bold">
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <h4 className="font-bold text-white text-sm">Digital Store Marketplace</h4>
-              <p className="text-white/50">Buy and sell developer eBooks, software, and code templates via Flutterwave, Paystack & Stripe.</p>
-            </div>
-
-            <div className="p-5 bg-black/60 border border-white/10 rounded-2xl space-y-2">
-              <div className="w-10 h-10 bg-orange-600/20 text-orange-400 rounded-xl flex items-center justify-center font-bold">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h4 className="font-bold text-white text-sm">Face ID & 2FA OTP Guard</h4>
-              <p className="text-white/50">Biometric camera scan and instant 6-digit SMS/email OTP verification for wallet protection.</p>
-            </div>
+            <button
+              onClick={() => setShowForgotPasswordModal(false)}
+              className="mt-3 w-full text-center text-xs text-emerald-400 hover:underline"
+            >
+              Back to Login
+            </button>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* Footer */}
-      <footer className="bg-black py-6 border-t border-white/10 text-center text-xs text-white/40">
-        <p>© 2026 Sununsi Dev Video Platform. Engineered for Desktop & Android devices.</p>
+      {/* Military Footer */}
+      <footer className="py-3 px-6 text-center text-xs text-emerald-400/80 border-t border-emerald-900 bg-emerald-950/90 relative z-10">
+        <p>© 2026 23 Support Engineer Regiment Jos • Nigerian Army Engineers • Restricted Personnel Portal</p>
       </footer>
+
     </div>
   );
 };

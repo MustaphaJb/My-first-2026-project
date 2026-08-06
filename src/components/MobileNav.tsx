@@ -1,70 +1,94 @@
 import React from 'react';
-import { Home, Video, Plus, DollarSign, ShoppingBag, Radio } from 'lucide-react';
-import { TRANSLATIONS } from '../data/translations';
+import { User } from '../types';
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  FileSpreadsheet,
+  Menu,
+  LogOut,
+} from 'lucide-react';
 
 interface MobileNavProps {
-  activeTab: string;
+  currentTab: string;
   onTabChange: (tab: string) => void;
-  lang: string;
-  onOpenUpload: () => void;
+  onToggleMenu: () => void;
+  user: User;
+  onLogout?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
-  activeTab,
+  currentTab,
   onTabChange,
-  lang,
-  onOpenUpload,
+  onToggleMenu,
+  user,
+  onLogout,
 }) => {
-  const t = TRANSLATIONS[lang] || TRANSLATIONS['en'];
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#080808]/95 backdrop-blur-md border-t border-white/10 text-white/50 flex items-center justify-around py-2 px-1 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-emerald-950/95 backdrop-blur-md border-t border-amber-500/30 text-emerald-100 flex items-center justify-around py-2 px-1 md:hidden shadow-2xl pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
       <button
-        onClick={() => onTabChange('home')}
-        className={`flex flex-col items-center gap-1 text-[10px] ${
-          activeTab === 'home' ? 'text-orange-400 font-bold' : 'hover:text-white'
+        id="btn-mobile-tab-dash"
+        onClick={() => onTabChange('dashboard')}
+        className={`flex flex-col items-center justify-center gap-1 min-w-[50px] min-h-[44px] text-[10px] font-medium transition-all ${
+          currentTab === 'dashboard' ? 'text-amber-400 font-bold scale-105' : 'text-emerald-300/80 hover:text-white'
         }`}
       >
-        <Home className="w-5 h-5" />
-        <span>{t.home}</span>
+        <LayoutDashboard className="w-5 h-5" />
+        <span>Dashboard</span>
       </button>
 
       <button
-        onClick={() => onTabChange('shorts')}
-        className={`flex flex-col items-center gap-1 text-[10px] ${
-          activeTab === 'shorts' ? 'text-orange-400 font-bold' : 'hover:text-white'
+        id="btn-mobile-tab-roster"
+        onClick={() => onTabChange('personnel')}
+        className={`flex flex-col items-center justify-center gap-1 min-w-[50px] min-h-[44px] text-[10px] font-medium transition-all ${
+          currentTab === 'personnel' ? 'text-amber-400 font-bold scale-105' : 'text-emerald-300/80 hover:text-white'
         }`}
       >
-        <Video className="w-5 h-5" />
-        <span>Shorts</span>
+        <Users className="w-5 h-5" />
+        <span>Roster</span>
+      </button>
+
+      {/* Primary Action Floating Button */}
+      <button
+        id="btn-mobile-tab-add"
+        onClick={() => onTabChange('add_personnel')}
+        className="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-400 text-emerald-950 flex items-center justify-center shadow-lg -mt-5 border-2 border-emerald-950 active:scale-95 transition-transform"
+        title="Add New Personnel Record"
+      >
+        <UserPlus className="w-6 h-6 stroke-[2.5]" />
       </button>
 
       <button
-        onClick={onOpenUpload}
-        className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(234,88,12,0.3)] -mt-5 border-2 border-[#050505]"
+        id="btn-mobile-tab-reports"
+        onClick={() => onTabChange('reports')}
+        className={`flex flex-col items-center justify-center gap-1 min-w-[50px] min-h-[44px] text-[10px] font-medium transition-all ${
+          currentTab === 'reports' ? 'text-amber-400 font-bold scale-105' : 'text-emerald-300/80 hover:text-white'
+        }`}
       >
-        <Plus className="w-6 h-6 stroke-[3]" />
+        <FileSpreadsheet className="w-5 h-5" />
+        <span>Reports</span>
       </button>
 
       <button
-        onClick={() => onTabChange('cpa')}
-        className={`flex flex-col items-center gap-1 text-[10px] ${
-          activeTab === 'cpa' ? 'text-orange-400 font-bold' : 'hover:text-white'
-        }`}
+        id="btn-mobile-tab-more"
+        onClick={onToggleMenu}
+        className="flex flex-col items-center justify-center gap-1 min-w-[50px] min-h-[44px] text-[10px] font-medium text-emerald-300/80 hover:text-white transition-all active:scale-95"
       >
-        <DollarSign className="w-5 h-5" />
-        <span>CPA Earn</span>
+        <Menu className="w-5 h-5 text-amber-400" />
+        <span>Menu</span>
       </button>
 
-      <button
-        onClick={() => onTabChange('digital-products')}
-        className={`flex flex-col items-center gap-1 text-[10px] ${
-          activeTab === 'digital-products' ? 'text-orange-400 font-bold' : 'hover:text-white'
-        }`}
-      >
-        <ShoppingBag className="w-5 h-5" />
-        <span>Store</span>
-      </button>
+      {onLogout && (
+        <button
+          id="btn-mobile-tab-logout"
+          onClick={onLogout}
+          className="flex flex-col items-center justify-center gap-1 min-w-[50px] min-h-[44px] text-[10px] font-bold text-red-400 hover:text-red-300 transition-all active:scale-95"
+          title="Logout from System"
+        >
+          <LogOut className="w-5 h-5 text-red-400" />
+          <span>Logout</span>
+        </button>
+      )}
     </nav>
   );
 };
